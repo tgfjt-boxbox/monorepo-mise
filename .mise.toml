@@ -1,0 +1,6 @@
+[tools]
+node = "22.14.0"
+"npm:pnpm" = "10.4.1"
+
+[env]
+_.file = ".env.shared"
