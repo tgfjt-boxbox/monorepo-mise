@@ -1,140 +1,187 @@
 # mise による環境変数共有のサンプル
 
-このリポジトリは mise を使っています。
-特に git worktree を使う際にも、.env ファイルを gitignore していても環境変数をさっと共有できるのが便利です。
+**git worktree でも環境変数を簡単に共有できる開発環境セットアップ**
+
+---
+
+## 🚀 クイックスタート
+
+このプロジェクトをすぐに使い始めるための手順：
+
+```bash
+# 1. リポジトリをクローン
+git clone <repository-url>
+cd monorepo-mise
+
+# 2. 設定を信頼して環境をセットアップ
+mise trust && mise i
+
+# 3. 環境変数の確認
+./test.sh
+```
+
+これだけで開発環境の準備は完了です！
+
+---
 
 ## mise とは
 
 mise（ミーズ）は開発環境のセットアップツールです。フランス語の「mise-en-place（料理の下準備）」が名前の由来です。
 
-主な機能：
+**主な特徴**
 - 開発ツール（Node.js、Python等）のバージョン管理
 - 環境変数の管理
 - タスクランナー機能
+- git worktree での環境共有に対応
 
-## 初回セットアップ（mise 自体のインストール）
+---
 
-### 1. mise のインストール
+## セットアップフロー
 
+### Step 1: mise 本体のインストール（初回のみ）
+
+#### macOS
 ```bash
-# macOS (Homebrew)
 brew install mise
+```
 
-# または curl を使う場合
-curl https://mise.run | sh
-
+#### Linux
+```bash
 # Ubuntu/Debian
 apt install mise
 
-# その他のパッケージマネージャも対応
+# その他のインストール方法
+curl https://mise.run | sh
 ```
 
-### 2. シェルの設定（mise activate）
+### Step 2: シェルの設定（初回のみ）
 
-**mise activate とは**: 現在のシェルセッションで mise を有効化するコマンドです。
+お使いのシェルに合わせて設定を追加：
 
-お使いのシェルの設定ファイルに以下を追加します：
+<details>
+<summary><strong>Bash の場合</strong></summary>
 
-#### Bash の場合
 ```bash
 echo 'eval "$(mise activate bash)"' >> ~/.bashrc
-source ~/.bashrc  # 設定を反映
+source ~/.bashrc
 ```
+</details>
 
-#### Zsh の場合（macOS のデフォルト）
+<details>
+<summary><strong>Zsh の場合（macOS デフォルト）</strong></summary>
+
 ```bash
 echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
-source ~/.zshrc  # 設定を反映
+source ~/.zshrc
 ```
+</details>
 
-#### Fish の場合
+<details>
+<summary><strong>Fish の場合</strong></summary>
+
 ```fish
 echo 'mise activate fish | source' >> ~/.config/fish/config.fish
-source ~/.config/fish/config.fish  # 設定を反映
+source ~/.config/fish/config.fish
 ```
+</details>
 
-> **📝 メモ**: Homebrew でインストールした場合、mise はすでに PATH に含まれています
-
-### 3. インストールの確認
+### Step 3: インストールの確認
 
 ```bash
-mise doctor  # または mise dr
+mise doctor
 ```
 
-## このリポジトリでの使い方
+---
 
-### 1. mise trust - 設定ファイルを信頼する
+## プロジェクトでの使い方
 
-**mise trust とは**: `.mise.toml` を信頼して、環境変数やタスクを実行できるようにするコマンドです。セキュリティのため、新しい設定ファイルは明示的に信頼する必要があります。
+### 基本コマンド
 
-```bash
-mise trust
-```
+| コマンド | 説明 | 使用タイミング |
+|---------|------|--------------|
+| `mise trust` | 設定ファイルを信頼 | 新規クローン時 |
+| `mise i` | ツールをインストール | trust の後 |
+| `./test.sh` | 環境変数を確認 | セットアップ後 |
 
-これにより：
-- `.mise.toml` に定義された環境変数が読み込まれます
-- プロジェクト固有の設定が適用されます
+### コマンドの詳細
 
-### 2. mise install - ツールをインストール
+#### `mise trust`
+`.mise.toml` を信頼して、環境変数やタスクを実行可能にします。セキュリティのため、新しい設定ファイルは明示的に信頼する必要があります。
 
-**mise install とは**: `.mise.toml` に記載されたツールやランタイムをインストールするコマンドです。
-
-```bash
-mise i  # または mise install
-```
-
-このコマンドで以下がインストールされます：
+#### `mise install` (省略形: `mise i`)
+`.mise.toml` に記載されたツールをインストールします：
 - Node.js 22.14.0
 - pnpm 10.4.1
+- `.env.shared` から環境変数を自動読み込み
 
-また、`.env.shared` から環境変数も自動的に読み込まれます。
+---
 
-## コマンドまとめ
+## 仕組みの解説
 
-| コマンド | 説明 | いつ使う |
-|---------|------|---------|
-| `mise activate` | シェルで mise を有効化 | mise を初めてインストールした時（1回だけ） |
-| `mise trust` | 設定ファイルを信頼 | 新しいプロジェクトをクローンした時 |
-| `mise install` | ツールをインストール | `mise trust` の後、開発を始める前 |
+### ファイル構成
 
-## 使い方
+```
+.
+├── .mise.toml      # ツールのバージョンと環境設定
+├── .env.shared     # 共有環境変数（git管理対象）
+└── test.sh         # 環境変数の確認スクリプト
+```
 
-### 環境変数の確認
+### 重要なポイント
 
-環境変数が正しく読み込まれているか、個別の設定が反映されているかを確認：
+1. **`.env.shared` は gitignore されていません**
+   - git worktree 間で環境変数を共有可能
+   - チーム全体で同じ環境変数を使用
+
+2. **セキュアな設計**
+   - `mise trust` により明示的な許可が必要
+   - 環境変数の意図しない読み込みを防止
+
+---
+
+## git worktree での活用
+
+新しい worktree でも環境変数の手動コピーは不要：
 
 ```bash
+# 新しい worktree を作成
+git worktree add ../feature-branch
+
+# worktree に移動してセットアップ
+cd ../feature-branch
+mise trust && mise i
+
+# 環境変数が自動的に利用可能！
 ./test.sh
 ```
 
-以下のような出力が表示されます：
-```
-NODE_ENV              = 
-HOGE = foo
-FUGA = bar
-```
+---
 
-`test.sh` は環境変数が読み取れていること、個別の設定も反映されていることを見やすくするためのスクリプトです。
+## トラブルシューティング
 
-## 仕組み
+<details>
+<summary><strong>mise コマンドが見つからない</strong></summary>
 
-- `.mise.toml` - ツールのバージョンと環境設定を定義
-  - Node.js 22.14.0
-  - pnpm 10.4.1
-  - `.env.shared` から環境変数を読み込み
-
-- `.env.shared` - Git で管理される共有環境変数
-  - このファイルは意図的に gitignore されていません
-  - git worktree 間で環境変数を共有できます
-
-## git worktree での利用
-
-新しい worktree を作成しても、`.env.shared` ファイルが自動的に利用可能になるため、環境変数の手動コピーが不要です。
-
+シェルの設定が正しく反映されているか確認：
 ```bash
-git worktree add ../feature-branch
-cd ../feature-branch
+# 設定ファイルを再読み込み
+source ~/.bashrc  # または ~/.zshrc
+```
+</details>
+
+<details>
+<summary><strong>環境変数が読み込まれない</strong></summary>
+
+`mise trust` を実行したか確認：
+```bash
 mise trust
 mise i
-./test.sh  # 環境変数が利用可能！
 ```
+</details>
+
+---
+
+## 参考リンク
+
+- [mise 公式ドキュメント](https://mise.jdx.dev/)
+- [mise GitHub リポジトリ](https://github.com/jdx/mise)
