@@ -4,3 +4,5 @@ node = "22.14.0"
 
 [env]
 _.file = ".env.shared"
+BASE_URL = "http://localhost"
+NODE_ENV = "development"

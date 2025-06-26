@@ -1,0 +1,13 @@
+{
+  "name": "monorepo-mise-sample",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel run dev",
+    "build": "pnpm run build",
+    "test": "pnpm run test"
+  },
+  "devDependencies": {
+    "pnpm": "^8.14.0"
+  }
+}

@@ -1,6 +1,6 @@
-# mise による環境変数共有のサンプル
+# pnpm Monorepo with mise
 
-**git worktree でも環境変数を簡単に共有できる開発環境セットアップ**
+**mise と pnpm を使った Monorepo 開発環境のサンプル**
 
 ---
 
@@ -16,8 +16,14 @@ cd monorepo-mise
 # 2. 設定を信頼して環境をセットアップ
 mise trust && mise i
 
-# 3. 環境変数の確認
+# 3. 依存関係をインストール
+pnpm install
+
+# 4. 環境変数の確認
 ./test.sh
+
+# 5. 各アプリケーションの起動
+pnpm dev  # すべてのアプリを並列実行
 ```
 
 これだけで開発環境の準備は完了です！
@@ -116,28 +122,85 @@ mise doctor
 
 ---
 
-## 仕組みの解説
+## プロジェクト構成
 
-### ファイル構成
+### ディレクトリ構造
 
 ```
-.
-├── .mise.toml      # ツールのバージョンと環境設定
-├── .env.shared     # 共有環境変数（git管理対象）
-└── test.sh         # 環境変数の確認スクリプト
-```
+repo/                         # Git ルート
+├── .env.shared              # 全体共通の環境変数（gitignore）
+├── .mise.toml               # 共通ツール & 共通ENV
+├── .gitignore               # .env.shared と .worktrees を除外
+├── pnpm-workspace.yaml      # pnpm ワークスペース設定
+├── package.json             # ルートパッケージ
+├── apps/                    # monorepo の各アプリ
+│   ├── web/
+│   │   ├── .env            # web 専用 dotenv
+│   │   ├── .mise.toml      # web 専用設定（共通を上書き・追加）
+│   │   ├── package.json
+│   │   └── index.js        # サンプル Web アプリ（PORT=3000）
+│   └── api/
+│       ├── .env            # api 専用 dotenv
+│       ├── .mise.toml      # api 専用設定
+│       ├── package.json
+│       └── index.js        # サンプル API（PORT=4000）
+├── packages/                # 共有パッケージ用ディレクトリ
+└── .worktrees/              # 任意：作業ツリー置き場（Git 管理外）
+
+### 環境変数の階層構造
+
+1. **ルートレベル（全体共通）**
+   - `.mise.toml`: `BASE_URL`, `NODE_ENV` など
+   - `.env.shared`: `SHARED_SECRET`, `DATABASE_URL` など
+
+2. **アプリケーションレベル**
+   - `apps/web/.mise.toml`: `PORT=3000`, `APP_NAME=web`
+   - `apps/web/.env`: `WEB_SECRET` など
+   - `apps/api/.mise.toml`: `PORT=4000`, `APP_NAME=api`
+   - `apps/api/.env`: `API_KEY` など
+
+3. **環境変数の継承**
+   - 各アプリケーションはルートの環境変数を継承
+   - アプリ固有の設定で上書き・追加が可能
 
 ### 重要なポイント
 
-1. **`.env.shared` は gitignore されていません**
-   - git worktree 間で環境変数を共有可能
-   - チーム全体で同じ環境変数を使用
+1. **`.env.shared` は gitignore されています**
+   - チーム間で共有したい環境変数を安全に管理
+   - git worktree でも親リポジトリの `.env.shared` を参照
 
-2. **セキュアな設計**
+2. **pnpm ワークスペース**
+   - `pnpm-workspace.yaml` で monorepo 構成を定義
+   - 各アプリは独立したパッケージとして管理
+
+3. **セキュアな設計**
    - `mise trust` により明示的な許可が必要
    - 環境変数の意図しない読み込みを防止
 
 ---
+
+## 開発フロー
+
+### アプリケーションの実行
+
+```bash
+# すべてのアプリを並列実行
+pnpm dev
+
+# 個別に実行
+cd apps/web && pnpm dev  # Web アプリのみ
+cd apps/api && pnpm dev  # API のみ
+```
+
+### 環境変数の確認
+
+```bash
+# スクリプトで一括確認
+./test.sh
+
+# 個別のアプリで確認
+cd apps/web && mise exec -- env | grep -E "NODE_ENV|PORT|APP_NAME"
+```
 
 ## git worktree での活用
 
@@ -145,11 +208,12 @@ mise doctor
 
 ```bash
 # 新しい worktree を作成
-git worktree add ../feature-branch
+git worktree add .worktrees/feature-branch
 
 # worktree に移動してセットアップ
-cd ../feature-branch
+cd .worktrees/feature-branch
 mise trust && mise i
+pnpm install
 
 # 環境変数が自動的に利用可能！
 ./test.sh
