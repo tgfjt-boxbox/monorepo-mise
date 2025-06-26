@@ -1,2 +1,6 @@
 .env.shared
 .worktrees
+node_modules/
+dist/
+build/
+*.log

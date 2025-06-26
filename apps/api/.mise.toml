@@ -1,0 +1,4 @@
+[env]
+_.file = ".env"
+PORT = "4000"
+APP_NAME = "api"

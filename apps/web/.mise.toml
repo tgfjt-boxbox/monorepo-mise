@@ -1,0 +1,4 @@
+[env]
+_.file = ".env"
+PORT = "3000"
+APP_NAME = "web"
