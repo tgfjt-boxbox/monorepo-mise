@@ -1,0 +1,11 @@
+{
+  "env": {
+    "CLAUDE_CODE_ENABLE_TELEMETRY": "0"
+  },
+  "permissions": {
+    "allow": [],
+    "deny": [
+      "Read(.env.shared)"
+    ]
+  }
+}
